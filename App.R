@@ -31,8 +31,8 @@ Rainfall_data <- read.socrata(Query)
 
 Rainfall_data$Value <- as.numeric(Rainfall_data$Value)
 Rainfall_data$DatetimeAEST <- as.POSIXct(Rainfall_data$DatetimeAEST, format = "%Y-%m-%dT%H:%M:%S")
+Rainfall_data$DatetimeAEST <- as_date(Rainfall_data$DatetimeAEST)
 Rainfall_data$SiteID <- as.factor(Rainfall_data$SiteID)
-
 
 #3// Extract metadata from data.act.gov.au
 
@@ -59,12 +59,15 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     
                     # Select site to plot
                     selectInput(inputId = "site", label = strong("Rain Gauge"),
-                                choices = unique(My_meta$siteName),
-                                selected = "Licking Hole Creek above Cotter Junction"),
+                                choices = unique(My_meta$Siteid),
+                                selected = "410776"),
                     
                     # Select date range to be plotted
-                    uiOutput("dateRange"),
-                  
+                    sliderInput("Date", strong("Date range"), min = as.Date("1980-01-01"), max = as.Date("2016-12-31"),
+                                value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
+                                timeFormat = "%Y-%m-%d")
+                    ),
+                    
                   
                   # Output: Description, lineplot, and reference
                   mainPanel(
@@ -77,61 +80,54 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     )
                   )
 
+
+
 #5// Define server function
-server <- function(input, output) {
+server <- function(input, output, session) {
   
-  # Subset data
+  # Subset data by site
   selected_rain <- reactive({
-    req(input$Date)
-    validate(need(!is.na(input$Date[1]) & !is.na(input$Date[2]), "Error: Please provide both a start and an end date."))
-    validate(need(input$Date[1] < input$Date[2], "Error: Start date should be earlier than end date."))
-    shiny_data %>%
+    Rainfall_data %>%
       filter(
-        Site == input$site,
-        Date > as.Date(input$Date[1]) & Date < as.Date(input$Date[2])
-      )
+        SiteID == input$site
+        )
+
   })
   
-  output$dateRange <- renderUI({
-    sliderInput("Date", strong("Select the date range:"),
-                   start = 
-                     as.character(format(as.Date(min(df()$date))),"yyyy-mm-dd"), # Start 
-                   end = 
-                     as.character(format(as.Date(max(df()$date))),"yyyy-mm-dd"), # End 
-                   min = 
-                     as.character(format(as.Date(min(df()$date))),"yyyy-mm-dd"),
-                   max = 
-                     as.character(format(as.Date(max(df()$date))),"yyyy-mm-dd"),
-                   format = "yyyy-mm-dd")
-    
-  })
+  #Update slider input to reflect site selected
+  observeEvent(input$site, {
+  updateSliderInput(session, "Date", value = c(min(selected_rain()$DatetimeAEST), max(selected_rain()$DatetimeAEST)),
+                    min = min(selected_rain()$DatetimeAEST), max = max(selected_rain()$DatetimeAEST))
+})
+
+  #subset data by selected daterange
+  selected_rain2 <- reactive({
+  req(input$Date)
+  validate(need(!is.na(input$Date[1]) & !is.na(input$Date[2]), "Error: Please provide both a start and an end date."))
+  validate(need(input$Date < input$Date[2], "Error: Start date should be earlier than end date."))
+  selected_rain() %>%
+    filter(DatetimeAEST > input$Date[1] & DatetimeAEST < input$Date[2]
+    )
+  
+})  
+  
 #  https://stackoverflow.com/questions/48633984/pass-a-dynamic-date-date-range-to-daterangeinput-in-r-shiny
   
   # Create scatterplot object the plotOutput function is expecting
   output$lineplot <- renderPlot({
-    ggplot(selected_flow()) +
-      geom_line(aes(Date, Gauged_ML_day, color = "blue")) +
-      labs(x = "Date", y = "Streamflow (ML/day)", title = paste("Streamflow at" ,(input$site))) +
-      scale_color_manual(values = c("blue", "red"), labels = c("Gauged Streamflow", "Modelled Streamflow"), name = "Legend") +
-      # Display only if modelled flow is checked
-      if(input$modelled_flow){
-        geom_line(aes(Date, Modelled_ML_day, color = "red"))
-      }
+    ggplot(selected_rain2()) +
+      geom_col(aes(x = DatetimeAEST, y = Value), color = "blue") +
+      labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site))
   })
-  
+}  
   #Create cumulative flow plot
-  output$cumplot <- renderPlot({
-    ggplot(selected_flow()) + 
-      geom_line(aes(Date, cumsum(replace_na(Gauged_ML_day,0))/1000, color = "blue")) +
-      labs(x = "Date", y = "Cumulative flow (GL)", title = paste("Cumulative flow at", (input$site))) + 
-      scale_color_manual(values = c("blue", "red"), labels = c("Gauged cumulative flow", "Modelled cumulative flow"), name = "Legend") + 
-      #Disply only if a modelled flow is checked
-      if(input$modelled_flow){
-        geom_line(aes(Date, cumsum(replace_na(Modelled_ML_day,0))/1000, color = "red"))
-      }
-    
-  })
-}
+  #output$cumplot <- renderPlot({
+   # ggplot(selected_rain()) + 
+    #  geom_line(aes(DatetimeAEST, cumsum(replace_na(Value,0)), color = "blue")) +
+     # labs(x = "Date", y = "Cumulative flow (GL)", title = paste("Cumulative flow at", (input$site))) + 
+      #scale_color_manual(values = c("blue", "red"), labels = c("Gauged cumulative flow", "Modelled cumulative flow"), name = "Legend")
+#  })
+                              }
 
 # Create Shiny object
 shinyApp(ui = ui, server = server)
