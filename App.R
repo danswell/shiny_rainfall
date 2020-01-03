@@ -32,7 +32,7 @@ Static_data$SiteID <- as.factor(Static_data$SiteID)
 Query <- soql() %>%
   soql_add_endpoint("https://www.data.act.gov.au/resource/yuhh-28ai.json") %>%
   soql_simple_filter("VariableName", "Rainfall") %>%
-  soql_where("DatetimeAEST" > "LAST_YEAR") %>% #fix this somehow
+  soql_where("DatetimeAEST" <= "THIS_YEAR") %>% #fix this somehow
   soql_select("DatetimeAEST, Value, SiteID") %>%
   as.character()
 
@@ -80,10 +80,16 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     # Select date range to be plotted
                     sliderInput("Date", strong("Date range"), min = as.Date("1980-01-01"), max = as.Date("2016-12-31"),
                                 value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
-                                timeFormat = "%Y-%m-%d")
-                    ),
+                                timeFormat = "%Y-%m-%d"),
                     
+                    # Data aggregator
+                    # Select whether to aggregate data to monthly
+                    checkboxInput(inputId = "monthly", label = strong("Monthly aggregator"), value = FALSE),
                   
+                  # Select whether to aggregate data to annually
+                  checkboxInput(inputId = "yearly", label = strong("Yearly aggregator"), value = FALSE)
+                  ),
+
                   # Output: Description, lineplot, and reference
                   mainPanel(
                     plotOutput(outputId = "lineplot", height = "400px"),
