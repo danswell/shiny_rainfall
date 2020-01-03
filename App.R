@@ -1,10 +1,11 @@
 # This code does the following:
 
 #1 load libraries
-#2 extract/process data from data.act.gov.au
-#3 extract/process site metadata from data.act.gov.au
-#4 Create UI
-#5 Create Server
+#2. Read in static data
+#3 extract/process data from data.act.gov.au
+#4 extract/process site metadata from data.act.gov.au
+#5 Create UI
+#6 Create Server
 
 #1 Load libraries
 
@@ -16,25 +17,39 @@ library(lubridate)
 library(ggplot2)
 library(shiny)
 
-#2 Extract and process data from data.act.gov.au
+#2. Read in static data
+
+Static_data <- read.csv("Rainfall_data.csv", header = T)
+Static_data$Value <- as.numeric(Static_data$Value)
+Static_data$DatetimeAEST <- as.POSIXct(Static_data$DatetimeAEST, format = "%Y-%m-%dT%H:%M:%S")
+Static_data$DatetimeAEST <- as_date(Static_data$DatetimeAEST)
+Static_data$SiteID <- as.factor(Static_data$SiteID)
+
+
+#3 Extract and process data from data.act.gov.au
 # This code uses the RSocrate API. It can be used to extract both the data and the metadata
 
 Query <- soql() %>%
   soql_add_endpoint("https://www.data.act.gov.au/resource/yuhh-28ai.json") %>%
   soql_simple_filter("VariableName", "Rainfall") %>%
-  #soql_where("DatetimeAEST" > "2009-01-01T09:00:00.000") %>% #fix this somehow
+  soql_where("DatetimeAEST" > "LAST_YEAR") %>% #fix this somehow
   soql_select("DatetimeAEST, Value, SiteID") %>%
   as.character()
 
-
 Rainfall_data <- read.socrata(Query)
+#write.csv(Rainfall_data, "rainfall_data.csv", row.names = FALSE)
 
+#Prep data
 Rainfall_data$Value <- as.numeric(Rainfall_data$Value)
 Rainfall_data$DatetimeAEST <- as.POSIXct(Rainfall_data$DatetimeAEST, format = "%Y-%m-%dT%H:%M:%S")
 Rainfall_data$DatetimeAEST <- as_date(Rainfall_data$DatetimeAEST)
 Rainfall_data$SiteID <- as.factor(Rainfall_data$SiteID)
 
-#3// Extract metadata from data.act.gov.au
+#merge static and new data
+
+Rainfall_data <- bind_rows(Static_data, Rainfall_data)
+
+#4// Extract metadata from data.act.gov.au
 
 Query2 <- soql() %>%
   soql_add_endpoint("https://www.data.act.gov.au/resource/tsq4-63ge.json") %>%
@@ -51,7 +66,7 @@ My_meta$longitude <- as.numeric(My_meta$longitude)
 My_meta <- My_meta[My_meta$Siteid %in% Rainfall_data$SiteID,]
 
 
-##4// UI
+##5// UI
 
 ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                 sidebarLayout(
@@ -82,7 +97,7 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
 
 
 
-#5// Define server function
+#6// Define server function
 server <- function(input, output, session) {
   
   # Subset data by site
@@ -127,7 +142,7 @@ server <- function(input, output, session) {
      # labs(x = "Date", y = "Cumulative flow (GL)", title = paste("Cumulative flow at", (input$site))) + 
       #scale_color_manual(values = c("blue", "red"), labels = c("Gauged cumulative flow", "Modelled cumulative flow"), name = "Legend")
 #  })
-                              }
+#                              }
 
 # Create Shiny object
 shinyApp(ui = ui, server = server)
