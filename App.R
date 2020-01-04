@@ -28,11 +28,12 @@ Static_data$SiteID <- as.factor(Static_data$SiteID)
 
 #3 Extract and process data from data.act.gov.au
 # This code uses the RSocrate API. It can be used to extract both the data and the metadata
+# The intent here is to pull data since 1 Jan 2020 - to reduce the load on the API.
 
 Query <- soql() %>%
   soql_add_endpoint("https://www.data.act.gov.au/resource/yuhh-28ai.json") %>%
   soql_simple_filter("VariableName", "Rainfall") %>%
-  soql_where("DatetimeAEST" <= "THIS_YEAR") %>% #fix this somehow
+  soql_where("DatetimeAEST" >= "THIS_YEAR") %>% #fix this somehow
   soql_select("DatetimeAEST, Value, SiteID") %>%
   as.character()
 
@@ -45,9 +46,11 @@ Rainfall_data$DatetimeAEST <- as.POSIXct(Rainfall_data$DatetimeAEST, format = "%
 Rainfall_data$DatetimeAEST <- as_date(Rainfall_data$DatetimeAEST)
 Rainfall_data$SiteID <- as.factor(Rainfall_data$SiteID)
 
-#merge static and new data
+#merge static and new data, add month and years
 
 Rainfall_data <- bind_rows(Static_data, Rainfall_data)
+Rainfall_data$Month <- month(Rainfall_data$DatetimeAEST)
+Rainfall_data$Year <- year(Rainfall_data$DatetimeAEST)
 
 #4// Extract metadata from data.act.gov.au
 
@@ -84,7 +87,7 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     
                     # Data aggregator
                     # Select whether to aggregate data to monthly
-                    checkboxInput(inputId = "monthly", label = strong("Monthly aggregator"), value = FALSE),
+                  checkboxInput(inputId = "monthly", label = strong("Monthly aggregator"), value = FALSE),
                   
                   # Select whether to aggregate data to annually
                   checkboxInput(inputId = "yearly", label = strong("Yearly aggregator"), value = FALSE)
@@ -102,6 +105,11 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                   )
 
 
+#Graphs
+
+
+#Monthly rainfall
+  
 
 #6// Define server function
 server <- function(input, output, session) {
@@ -135,12 +143,31 @@ server <- function(input, output, session) {
 #  https://stackoverflow.com/questions/48633984/pass-a-dynamic-date-date-range-to-daterangeinput-in-r-shiny
   
   # Create scatterplot object the plotOutput function is expecting
-  output$lineplot <- renderPlot({
-    ggplot(selected_rain2()) +
-      geom_col(aes(x = DatetimeAEST, y = Value), color = "blue") +
-      labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site))
-  })
-}  
+  output$lineplot <- renderPlot({if(input$yearly == TRUE){
+    selected_rain2() %>%
+      group_by(Year) %>%
+      summarise(Yearly_rain = sum(Value, na.rm = T)) %>%
+      ggplot() + 
+      geom_col(mapping = aes(Year, Yearly_rain), color = "blue") +
+      labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site))
+  }
+   else if(input$monthly == TRUE){
+     selected_rain2() %>%
+     group_by(Year, Month) %>%
+     summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
+     mutate(My_date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
+     ggplot() + 
+     geom_col(mapping = aes(My_date, Monthly_rain), color = "blue") +
+     labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site))
+    }
+    else {selected_rain2() %>%
+       ggplot() +
+       geom_col(aes(DatetimeAEST, Value), color = "blue") +
+       labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)) 
+     }
+  })  
+}
+
   #Create cumulative flow plot
   #output$cumplot <- renderPlot({
    # ggplot(selected_rain()) + 
