@@ -16,6 +16,7 @@ library(soql)
 library(lubridate)
 library(ggplot2)
 library(shiny)
+library(leaflet)
 
 #2. Read in static data
 
@@ -104,12 +105,6 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     )
                   )
 
-
-#Graphs
-
-
-#Monthly rainfall
-  
 
 #6// Define server function
 server <- function(input, output, session) {
