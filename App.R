@@ -91,7 +91,10 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                   checkboxInput(inputId = "monthly", label = strong("Monthly aggregator"), value = FALSE),
                   
                   # Select whether to aggregate data to annually
-                  checkboxInput(inputId = "yearly", label = strong("Yearly aggregator"), value = FALSE)
+                  checkboxInput(inputId = "yearly", label = strong("Yearly aggregator"), value = FALSE),
+                  
+                  # Add leaflet map
+                  leafletOutput("my_map")
                   ),
 
                   # Output: Description, lineplot, and reference
@@ -132,10 +135,23 @@ server <- function(input, output, session) {
   selected_rain() %>%
     filter(DatetimeAEST > input$Date[1] & DatetimeAEST < input$Date[2]
     )
-  
 })  
   
 #  https://stackoverflow.com/questions/48633984/pass-a-dynamic-date-date-range-to-daterangeinput-in-r-shiny
+
+  
+  output$my_map <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      addMarkers(lng = My_meta$longitude, lat = My_meta$latitude, popup = My_meta$siteName, label = My_meta$siteName) %>%
+      setView(lng = 149.0, lat = -35.5, zoom = 8)
+  })
+  
+  data_of_click <- reactiveValues(clickedMarker=NULL)
+  
+  observeEvent(input$map_marker_click,{
+    data_of_click$clickedMarker <- input$map_marker_click
+  })
   
   # Create scatterplot object the plotOutput function is expecting
   output$lineplot <- renderPlot({if(input$yearly == TRUE){
@@ -160,7 +176,7 @@ server <- function(input, output, session) {
        geom_col(aes(DatetimeAEST, Value), color = "blue") +
        labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)) 
      }
-  })  
+  })
 }
 
   #Create cumulative flow plot
