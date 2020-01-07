@@ -31,10 +31,12 @@ Static_data$SiteID <- as.factor(Static_data$SiteID)
 # This code uses the RSocrate API. It can be used to extract both the data and the metadata
 # The intent here is to pull data since 1 Jan 2020 - to reduce the load on the API.
 
+Datecall <- paste0("DatetimeAEST between '2019-12-31T09:00.000' and ","'",Sys.Date(),"T09:00.000","'")
+
 Query <- soql() %>%
   soql_add_endpoint("https://www.data.act.gov.au/resource/yuhh-28ai.json") %>%
   soql_simple_filter("VariableName", "Rainfall") %>%
-  soql_where("DatetimeAEST" >= "THIS_YEAR") %>% #fix this somehow
+  soql_where(Datecall) %>% #dynamic date using sys.Date()
   soql_select("DatetimeAEST, Value, SiteID") %>%
   as.character()
 
