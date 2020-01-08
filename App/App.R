@@ -155,7 +155,7 @@ server <- function(input, output, session) {
     leaflet() %>%
       addTiles() %>%
       addMarkers(data = My_meta, lng = ~longitude, lat = ~latitude, layerId = ~Siteid, popup = ~paste0(Siteid, " - ",siteName), label = ~paste0(Siteid, " - ",siteName)) %>%
-      setView(lng = 149.0, lat = -35.5, zoom = 8)
+      setView(lng = 149.0, lat = -35.5, zoom = 9)
   })
   
   # Create scatterplot object the plotOutput function is expecting
