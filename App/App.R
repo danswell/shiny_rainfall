@@ -20,7 +20,7 @@ library(leaflet)
 
 #2. Read in static data
 
-Static_data <- read.csv("Rainfall_data.csv", header = T)
+Static_data <- read.csv("rainfall_data.csv", header = T)
 Static_data$Value <- as.numeric(Static_data$Value)
 Static_data$DatetimeAEST <- as.POSIXct(Static_data$DatetimeAEST, format = "%Y-%m-%dT%H:%M:%S")
 Static_data$DatetimeAEST <- as_date(Static_data$DatetimeAEST)
