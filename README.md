@@ -21,7 +21,7 @@ Creates the UI with the site selector, datetime slider, month and year aggregato
 
 Finally, the Server function does the heavy lifting - filters the dataset to selected site and date time. Automatically updates the datetime slider based on data availability for the selected site.
 
-Creates the plot using ggplot, based on the site, datetime and montly/yearly aggregator.
+Creates the plot using ggplot, based on the site, datetime and monthly/yearly aggregator.
 
 Danswell
 
