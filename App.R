@@ -102,9 +102,10 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                   # Output: Description, lineplot, and reference
                   mainPanel(
                     plotOutput(outputId = "lineplot", height = "400px"),
-                    textOutput(outputId = "cumplot", height = "400px"),
-                    tags$body("Data provided by ACT Government (www.data.act.gov.au). Questions and comments can be directed to
-                    danswell(dot)starrs(at)act(dot)gov(dot)au")
+                    #textOutput(outputId = "cumplot", height = "400px"),
+                    tags$body("Clicking on pin on map can select site, as can selecting from dropdown menu. Data provided by ACT Government (www.data.act.gov.au). Questions and comments can be directed to
+                    danswell(dot)starrs(at)act(dot)gov(dot)au. Data can be aggregated to monthly or calendar year. Note this is 
+                    sensitive to the time slider input - partial months and years will be computed based on time slider")
                     )
                     )
                   )
@@ -153,7 +154,7 @@ server <- function(input, output, session) {
   output$my_map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
-      addMarkers(data = My_meta, lng = ~longitude, lat = ~latitude, layerId = ~Siteid, popup = ~siteName, label = ~siteName) %>%
+      addMarkers(data = My_meta, lng = ~longitude, lat = ~latitude, layerId = ~Siteid, popup = ~paste0(Siteid, " - ",siteName), label = ~paste0(Siteid, " - ",siteName)) %>%
       setView(lng = 149.0, lat = -35.5, zoom = 8)
   })
   
