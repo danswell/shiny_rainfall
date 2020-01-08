@@ -105,7 +105,8 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     #textOutput(outputId = "cumplot", height = "400px"),
                     tags$body("Clicking on pin on map can select site, as can selecting from dropdown menu. Data provided by ACT Government (www.data.act.gov.au). Questions and comments can be directed to
                     danswell(dot)starrs(at)act(dot)gov(dot)au. Data can be aggregated to monthly or calendar year. Note this is 
-                    sensitive to the time slider input - partial months and years will be computed based on time slider")
+                    sensitive to the time slider input - partial months and years will be computed based on time slider. Code for this app can be found at
+                              https://github.com/danswell/shiny_rainfall")
                     )
                     )
                   )
