@@ -84,7 +84,7 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                                 selected = "410776"),
                     
                     # Select date range to be plotted
-                    sliderInput("Date", strong("Date range"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST)),
+                    sliderInput("Date", strong("Date range"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
                                 value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
                                 timeFormat = "%Y-%m-%d"),
                     
@@ -96,19 +96,21 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                   checkboxInput(inputId = "yearly", label = strong("Yearly aggregator"), value = FALSE),
                   
                   # Add leaflet map
-                  leafletOutput("my_map")
-                  ),
+                  leafletOutput("my_map")),
+                  
 
                   # Output: Description, lineplot, and reference
                   mainPanel(
                     plotOutput(outputId = "lineplot", height = "400px"),
                     #textOutput(outputId = "cumplot", height = "400px"),
-                    tags$body("Clicking on pin on map can select site, as can selecting from dropdown menu. Data provided by ACT Government (www.data.act.gov.au). Questions and comments can be directed to
+                    
+                    tags$body("Clicking on pin on map can select a site, as can selecting from dropdown menu. Data provided by ACT Government,", a("ACT Government Open Data Portal", href= "http://www.data.act.gov.au"),". Questions and comments can be directed to
                     danswell(dot)starrs(at)act(dot)gov(dot)au. Data can be aggregated to monthly or calendar year. Aggregation method is summation. Note this is 
-                    sensitive to the time slider input - partial months and years will be computed based on time slider. Code for this app can be found at
-                              https://github.com/danswell/shiny_rainfall")
-                    )
+                    sensitive to the time slider input - partial months and years will be computed based on time slider. LIkewise, mean is computed based upon the time range selected. 
+                    Code for this app can be found on", a("github", href="https://github.com/danswell/shiny_rainfall"))
                   )
+    )
+)
                 
 
 
@@ -178,14 +180,14 @@ server <- function(input, output, session) {
      ggplot() + 
      geom_col(mapping = aes(My_date, Monthly_rain), color = "blue") +
      geom_hline(aes(yintercept = mean(Monthly_rain)), color = "red") +
-     geom_text(aes(min(My_date),mean(Monthly_rain),label = round(mean(Monthly_rain),2), vjust = -1)) + 
+     geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("mean = ", round(mean(Monthly_rain),2)), vjust = -1)) + 
      labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site))
     }
     else {selected_rain2() %>%
        ggplot() +
        geom_col(aes(DatetimeAEST, Value), color = "blue") +
        geom_hline(aes(yintercept = mean(Value)), color = "red") + 
-       geom_text(aes(min(DatetimeAEST),mean(Value),label = round(mean(Value),2), vjust = -1)) + 
+       geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" mean = ", round(mean(Value),2)), vjust = -1)) + 
        labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)) 
      }
   })
