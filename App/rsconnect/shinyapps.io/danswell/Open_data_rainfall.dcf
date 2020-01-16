@@ -1,0 +1,10 @@
+name: Open_data_rainfall
+title:
+username:
+account: danswell
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1635221
+bundleId: 2732314
+url: https://danswell.shinyapps.io/Open_data_rainfall/
+when: 1579149858.50679
