@@ -20,7 +20,7 @@ library(leaflet)
 
 #2. Read in static data
 
-Static_data <- read.csv("./App/rainfall_data.csv", header = T)
+Static_data <- read.csv("rainfall_data.csv", header = T)
 Static_data$Value <- as.numeric(Static_data$Value)
 Static_data$DatetimeAEST <- as.POSIXct(Static_data$DatetimeAEST, format = "%Y-%m-%dT%H:%M:%S")
 Static_data$DatetimeAEST <- as_date(Static_data$DatetimeAEST)
@@ -103,10 +103,11 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                   mainPanel(
                     plotOutput(outputId = "lineplot", height = "400px"),
                     #textOutput(outputId = "cumplot", height = "400px"),
-                    
+                    downloadButton("download", "Download data"),
+                    p(),
                     tags$body("Clicking on pin on map can select a site, as can selecting from dropdown menu. Data provided by ACT Government,", a("ACT Government Open Data Portal", href= "http://www.data.act.gov.au"),". Questions and comments can be directed to
                     danswell(dot)starrs(at)act(dot)gov(dot)au. Data can be aggregated to monthly or calendar year. Aggregation method is summation. Note this is 
-                    sensitive to the time slider input - partial months and years will be computed based on time slider. LIkewise, mean is computed based upon the time range selected. 
+                    sensitive to the time slider input - partial months and years will be computed as selected on the time slider. Likewise, mean is computed based upon the time range selected. 
                     Code for this app can be found on", a("github", href="https://github.com/danswell/shiny_rainfall"))
                   )
     )
@@ -168,8 +169,8 @@ server <- function(input, output, session) {
       summarise(Yearly_rain = sum(Value, na.rm = T)) %>%
       ggplot() + 
       geom_col(mapping = aes(Year, Yearly_rain), color = "blue") +
-      geom_hline(aes(yintercept = mean(Yearly_rain)), color = "red") +
-      geom_text(aes(min(Year),mean(Yearly_rain),label = round(mean(Yearly_rain),2), vjust = -1)) + 
+      geom_hline(aes(yintercept = mean(Yearly_rain)), color = "red", linetype = "dashed") +
+      geom_text(aes(min(Year),mean(Yearly_rain),label = paste0("Annual mean = ", round(mean(Yearly_rain),2)), vjust = -1, hjust = 0.25)) + 
       labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site))
   }
    else if(input$monthly == TRUE){
@@ -179,32 +180,46 @@ server <- function(input, output, session) {
      mutate(My_date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
      ggplot() + 
      geom_col(mapping = aes(My_date, Monthly_rain), color = "blue") +
-     geom_hline(aes(yintercept = mean(Monthly_rain)), color = "red") +
-     geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("mean = ", round(mean(Monthly_rain),2)), vjust = -1)) + 
+     geom_hline(aes(yintercept = mean(Monthly_rain)), color = "red", linetype = "dashed") +
+     geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("Monthly mean = ", round(mean(Monthly_rain),2)), vjust = -1, hjust = 0.25)) + 
      labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site))
     }
     else {selected_rain2() %>%
        ggplot() +
        geom_col(aes(DatetimeAEST, Value), color = "blue") +
-       geom_hline(aes(yintercept = mean(Value)), color = "red") + 
-       geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" mean = ", round(mean(Value),2)), vjust = -1)) + 
+       geom_hline(aes(yintercept = mean(Value)), color = "red", linetype = "dashed") + 
+       geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = 0.25)) + 
        labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)) 
      }
   })
-}
+  
+  #Data download
 
-  #Create cumulative flow plot
-  #output$cumplot <- renderPlot({
-   # ggplot(selected_rain()) + 
-    #  geom_line(aes(DatetimeAEST, cumsum(replace_na(Value,0)), color = "blue")) +
-     # labs(x = "Date", y = "Cumulative flow (GL)", title = paste("Cumulative flow at", (input$site))) + 
-      #scale_color_manual(values = c("blue", "red"), labels = c("Gauged cumulative flow", "Modelled cumulative flow"), name = "Legend")
-#  })
-#                              }
+  dfile <-reactive({if(input$yearly == TRUE){
+      selected_rain2() %>%
+      group_by(Year) %>%
+      summarise(Yearly_rain = sum(Value, na.rm = T))
+    }
+    else if(input$monthly == TRUE){selected_rain2() %>%
+        group_by(Year, Month) %>%
+        summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
+        mutate(Date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep="")))
+      }
+    else {selected_rain2()
+    }
+  })
+
+    #output$dfile <- renderTable({head(selected_rain2())})  
+  
+  output$download <- downloadHandler(
+    filename = function() {
+      paste("file.csv")
+    },
+    content = function(file){
+      write.csv(dfile(), file, row.names = F)
+    }
+  )
+}
 
 # Create Shiny object
 shinyApp(ui = ui, server = server)
-
-
-
-
