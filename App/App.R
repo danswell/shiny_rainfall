@@ -71,6 +71,12 @@ My_meta$longitude <- as.numeric(My_meta$longitude)
 #filter to relevant sites in the Rainfall dataset
 My_meta <- My_meta[My_meta$Siteid %in% Rainfall_data$SiteID,]
 
+My_meta$Name <- paste0(My_meta$Siteid, " - ", My_meta$siteName)
+
+Intermediate <- My_meta %>%
+  select(Siteid, Name)
+
+Rainfall_data <- left_join(Rainfall_data, Intermediate, by = c("SiteID"="Siteid"))
 
 ##5// UI
 
@@ -80,8 +86,8 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     
                     # Select site to plot
                     selectInput(inputId = "site", label = strong("Rain Gauge"),
-                                choices = unique(My_meta$Siteid),
-                                selected = "410776"),
+                                choices = unique(My_meta$Name),
+                                selected = "410776 - Licking Hole Creek above Cotter Junction"),
                     
                     # Select date range to be plotted
                     sliderInput("Date", strong("Date range"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
@@ -122,7 +128,7 @@ server <- function(input, output, session) {
   selected_rain <- reactive({
     Rainfall_data %>%
       filter(
-        SiteID == input$site
+        Name == input$site
         )
 
   })
@@ -158,7 +164,7 @@ server <- function(input, output, session) {
   output$my_map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
-      addMarkers(data = My_meta, lng = ~longitude, lat = ~latitude, layerId = ~Siteid, popup = ~paste0(Siteid, " - ",siteName), label = ~paste0(Siteid, " - ",siteName)) %>%
+      addMarkers(data = My_meta, lng = ~longitude, lat = ~latitude, layerId = ~Name, popup = ~Name, label = ~Name) %>%
       setView(lng = 149.0, lat = -35.5, zoom = 9)
   })
   
