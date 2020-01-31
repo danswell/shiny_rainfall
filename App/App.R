@@ -90,30 +90,32 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                                 selected = "410776 - Licking Hole Creek above Cotter Junction"),
                     
                     # Select date range to be plotted
-                    sliderInput("Date", strong("Date range"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
-                                value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
-                                timeFormat = "%Y-%m-%d"),
+                   # sliderInput("Date", strong("Date range"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
+                  #              value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
+                  #              timeFormat = "%Y-%m-%d"),
                     
-                    # Data aggregator
-                    # Select whether to aggregate data to monthly
-                  checkboxInput(inputId = "monthly", label = strong("Monthly aggregator"), value = FALSE),
+                     dateRangeInput("Date", strong("Date range (YYYY-mm-dd)"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
+                                  start = min(Rainfall_data$DatetimeAEST), end = max(Rainfall_data$DatetimeAEST)), 
+                                  #value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
+                                  #timeFormat = "%Y-%m-%d"),
                   
-                  # Select whether to aggregate data to annually
-                  checkboxInput(inputId = "yearly", label = strong("Yearly aggregator"), value = FALSE),
+                  radioButtons(inputId = "aggregator", "Data Aggregator", 
+                               choices = c("daily", "monthly", "yearly"),
+                               selected = "daily", inline = TRUE),
                   
                   # Add leaflet map
                   leafletOutput("my_map")),
                   
-
                   # Output: Description, lineplot, and reference
                   mainPanel(
                     plotOutput(outputId = "lineplot", height = "400px"),
                     #textOutput(outputId = "cumplot", height = "400px"),
                     downloadButton("download", "Download data"),
                     p(),
-                    tags$body("Clicking on pin on map can select a site, as can selecting from dropdown menu. Data provided by ACT Government,", a("ACT Government Open Data Portal", href= "http://www.data.act.gov.au"),". Questions and comments can be directed to
+                    tags$body("Clicking on pin on map can select a site, as can selecting from dropdown menu. Data provided by ACT Government,", a("ACT Government Open Data Portal", href= "https://www.data.act.gov.au/browse?q=ACT%20Daily%20Rainfall%20and%20Streamflow&sortBy=relevance"),". Questions and comments can be directed to
                     danswell(dot)starrs(at)act(dot)gov(dot)au. Data can be aggregated to monthly or calendar year. Aggregation method is summation. Note this is 
-                    sensitive to the time slider input - partial months and years will be computed as selected on the time slider. Likewise, mean is computed based upon the time range selected. 
+                    sensitive to the date picker input - partial months and years will be computed as selected on the date picker. So select whole months and years to compute meaningful statistics. 
+                    Likewise, mean is computed based upon the time range selected. 
                     Code for this app can be found on", a("github", href="https://github.com/danswell/shiny_rainfall"))
                   )
     )
@@ -135,8 +137,8 @@ server <- function(input, output, session) {
   
   #Update slider input to reflect site selected
   observeEvent(input$site, {
-  updateSliderInput(session, "Date", value = c(min(selected_rain()$DatetimeAEST), max(selected_rain()$DatetimeAEST)),
-                    min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST))
+  updateDateRangeInput(session, "Date", start = min(selected_rain()$DatetimeAEST), end = max(selected_rain()$DatetimeAEST),
+                       min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST))
 })
   
   #Update selected site based on map click
@@ -157,10 +159,7 @@ server <- function(input, output, session) {
     filter(DatetimeAEST > input$Date[1] & DatetimeAEST < input$Date[2]
     )
 })  
-  
-#  https://stackoverflow.com/questions/48633984/pass-a-dynamic-date-date-range-to-daterangeinput-in-r-shiny
 
-  
   output$my_map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
@@ -169,7 +168,7 @@ server <- function(input, output, session) {
   })
   
   # Create scatterplot object the plotOutput function is expecting
-  output$lineplot <- renderPlot({if(input$yearly == TRUE){
+  output$lineplot <- renderPlot({if(input$aggregator == "yearly"){
     selected_rain2() %>%
       group_by(Year) %>%
       summarise(Yearly_rain = sum(Value, na.rm = T)) %>%
@@ -179,7 +178,7 @@ server <- function(input, output, session) {
       geom_text(aes(min(Year),mean(Yearly_rain),label = paste0("Annual mean = ", round(mean(Yearly_rain),2)), vjust = -1, hjust = 0.25)) + 
       labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site))
   }
-   else if(input$monthly == TRUE){
+   else if(input$aggregator == "monthly"){
      selected_rain2() %>%
      group_by(Year, Month) %>%
      summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
@@ -190,33 +189,33 @@ server <- function(input, output, session) {
      geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("Monthly mean = ", round(mean(Monthly_rain),2)), vjust = -1, hjust = 0.25)) + 
      labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site))
     }
-    else {selected_rain2() %>%
-       ggplot() +
-       geom_col(aes(DatetimeAEST, Value), color = "blue") +
-       geom_hline(aes(yintercept = mean(Value)), color = "red", linetype = "dashed") + 
-       geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = 0.25)) + 
-       labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)) 
+    else if(input$aggregator == "daily"){
+      selected_rain2() %>%
+      ggplot() +
+      geom_col(aes(DatetimeAEST, Value), color = "blue") +
+      geom_hline(aes(yintercept = mean(Value)), color = "red", linetype = "dashed") + 
+      geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = 0.25)) + 
+      labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)) 
      }
   })
   
   #Data download
 
-  dfile <-reactive({if(input$yearly == TRUE){
+  dfile <-reactive({if(input$aggregator == "yearly"){
       selected_rain2() %>%
       group_by(Year) %>%
       summarise(Yearly_rain = sum(Value, na.rm = T))
     }
-    else if(input$monthly == TRUE){selected_rain2() %>%
+    else if(input$aggregator == "monthly"){selected_rain2() %>%
         group_by(Year, Month) %>%
         summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
         mutate(Date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep="")))
       }
-    else {selected_rain2()
+    else if(input$aggregator == "daily"){selected_rain2()
     }
   })
 
-    #output$dfile <- renderTable({head(selected_rain2())})  
-  
+
   output$download <- downloadHandler(
     filename = function() {
       paste("file.csv")
