@@ -204,27 +204,27 @@ server <- function(input, output, session) {
                                                                                   ggplot() + 
                                                                                   geom_col(mapping = aes(Year, Yearly_rain), color = "blue") +
                                                                                   geom_hline(aes(yintercept = mean(Yearly_rain)), color = "red", linetype = "dashed") +
-                                                                                  geom_text(aes(min(Year),mean(Yearly_rain),label = paste0("Annual mean = ", round(mean(Yearly_rain),2)), vjust = -1, hjust = 0.25)) + 
-                                                                                  labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
+                                                                                  geom_text(aes(min(Year),mean(Yearly_rain),label = paste0("Annual mean = ", round(mean(Yearly_rain),2)), vjust = -1, hjust = 0)) + 
+                                                                                  labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site)), tooltip = c("Year", "Yearly_rain"))
                                                             ,
                                                               "monthly" = ggplotly(selected_rain2() %>%
                                                                                      group_by(Year, Month) %>%
                                                                                      summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
-                                                                                     mutate(My_date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
+                                                                                     mutate(Date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
                                                                                      ggplot() + 
-                                                                                     geom_col(mapping = aes(My_date, Monthly_rain), color = "blue") +
+                                                                                     geom_col(mapping = aes(Date, Monthly_rain), color = "blue") +
                                                                                      geom_hline(aes(yintercept = mean(Monthly_rain)), color = "red", linetype = "dashed") +
-                                                                                     geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("Monthly mean = ", round(mean(Monthly_rain),2)), vjust = -1, hjust = 0.25)) + 
-                                                                                     labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
+                                                                                     geom_text(aes(min(Date),mean(Monthly_rain),label = paste0("Monthly mean = ", round(mean(Monthly_rain),2)), vjust = -1, hjust = 0)) + 
+                                                                                     labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site)), tooltip = c("Date", "Monthly_rain"))
                                                             ,
                                                               "daily" = ggplotly(selected_rain2() %>%
                                                                                    ggplot() +
                                                                                    geom_col(aes(DatetimeAEST, Value), color = "blue") +
                                                                                    geom_hline(aes(yintercept = mean(Value)), color = "red", linetype = "dashed") + 
-                                                                                   geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = 0.25)) + 
-                                                                                   labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
+                                                                                   geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = "inward")) + 
+                                                                                   labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)), tooltip = c("DatetimeAEST", "Value"))
   )
-  })
+  }) 
   
   #Data download
 
