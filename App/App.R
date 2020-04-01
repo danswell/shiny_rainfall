@@ -17,6 +17,7 @@ library(lubridate)
 library(ggplot2)
 library(shiny)
 library(leaflet)
+library(plotly)
 
 #2. Read in static data
 
@@ -108,7 +109,7 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                   
                   # Output: Description, lineplot, and reference
                   mainPanel(
-                    plotOutput(outputId = "lineplot", height = "400px"),
+                    plotlyOutput(outputId = "lineplot", height = "400px"),
                     #textOutput(outputId = "cumplot", height = "400px"),
                     downloadButton("download", "Download data"),
                     p(),
@@ -168,18 +169,18 @@ server <- function(input, output, session) {
   })
   
   # Create scatterplot object the plotOutput function is expecting
-  output$lineplot <- renderPlot({if(input$aggregator == "yearly"){
-    selected_rain2() %>%
+  output$lineplot <- renderPlotly({if(input$aggregator == "yearly"){
+      ggplotly(selected_rain2() %>%
       group_by(Year) %>%
       summarise(Yearly_rain = sum(Value, na.rm = T)) %>%
       ggplot() + 
       geom_col(mapping = aes(Year, Yearly_rain), color = "blue") +
       geom_hline(aes(yintercept = mean(Yearly_rain)), color = "red", linetype = "dashed") +
       geom_text(aes(min(Year),mean(Yearly_rain),label = paste0("Annual mean = ", round(mean(Yearly_rain),2)), vjust = -1, hjust = 0.25)) + 
-      labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site))
+      labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
   }
    else if(input$aggregator == "monthly"){
-     selected_rain2() %>%
+     ggplotly(selected_rain2() %>%
      group_by(Year, Month) %>%
      summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
      mutate(My_date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
@@ -187,15 +188,15 @@ server <- function(input, output, session) {
      geom_col(mapping = aes(My_date, Monthly_rain), color = "blue") +
      geom_hline(aes(yintercept = mean(Monthly_rain)), color = "red", linetype = "dashed") +
      geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("Monthly mean = ", round(mean(Monthly_rain),2)), vjust = -1, hjust = 0.25)) + 
-     labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site))
+     labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
     }
     else if(input$aggregator == "daily"){
-      selected_rain2() %>%
+      ggplotly(selected_rain2() %>%
       ggplot() +
       geom_col(aes(DatetimeAEST, Value), color = "blue") +
       geom_hline(aes(yintercept = mean(Value)), color = "red", linetype = "dashed") + 
       geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = 0.25)) + 
-      labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)) 
+      labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
      }
   })
   
