@@ -94,9 +94,14 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                    # sliderInput("Date", strong("Date range"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
                   #              value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
                   #              timeFormat = "%Y-%m-%d"),
-                    
-                     dateRangeInput("Date", strong("Date range (YYYY-mm-dd)"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
-                                  start = min(Rainfall_data$DatetimeAEST), end = max(Rainfall_data$DatetimeAEST)), 
+                  
+                  radioButtons(inputId = "timeframe", "Time frame",
+                               choices = c("last 7 days", "last 30 days", "last year", "all data", "custom"),
+                                           selected = "all data"),
+                  
+                  conditionalPanel(condition = "input.timeframe == 'custom'",
+                                   dateRangeInput("Date", strong("Date range (YYYY-mm-dd)"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
+                                  start = min(Rainfall_data$DatetimeAEST), end = max(Rainfall_data$DatetimeAEST))), 
                                   #value = c(as.Date("1980-01-01"), as.Date("2016-12-31")),
                                   #timeFormat = "%Y-%m-%d"),
                   
@@ -151,6 +156,8 @@ server <- function(input, output, session) {
     })
 
 
+#rewriting this  
+  
   #subset data by selected daterange
   selected_rain2 <- reactive({
   req(input$Date)
@@ -161,6 +168,28 @@ server <- function(input, output, session) {
     )
 })  
 
+  #####
+  
+  selected_rain2 <- reactive({
+    switch(input$timeframe, 
+           "last 7 days" = selected_rain() %>%
+             filter(DatetimeAEST >= max(DatetimeAEST-7))
+           ,
+           "last 30 days" = selected_rain() %>%
+             filter(DatetimeAEST >= max(DatetimeAEST-30))
+           ,
+           "last year" = selected_rain() %>%
+             filter(DatetimeAEST >= max(DatetimeAEST-365))
+           ,
+           "all data" = selected_rain()
+           ,
+           "custom" =  selected_rain() %>%
+             filter(DatetimeAEST > input$Date[1] & DatetimeAEST < input$Date[2]
+             )
+    )
+  })
+  
+  
   output$my_map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
@@ -169,35 +198,32 @@ server <- function(input, output, session) {
   })
   
   # Create scatterplot object the plotOutput function is expecting
-  output$lineplot <- renderPlotly({if(input$aggregator == "yearly"){
-      ggplotly(selected_rain2() %>%
-      group_by(Year) %>%
-      summarise(Yearly_rain = sum(Value, na.rm = T)) %>%
-      ggplot() + 
-      geom_col(mapping = aes(Year, Yearly_rain), color = "blue") +
-      geom_hline(aes(yintercept = mean(Yearly_rain)), color = "red", linetype = "dashed") +
-      geom_text(aes(min(Year),mean(Yearly_rain),label = paste0("Annual mean = ", round(mean(Yearly_rain),2)), vjust = -1, hjust = 0.25)) + 
-      labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
-  }
-   else if(input$aggregator == "monthly"){
-     ggplotly(selected_rain2() %>%
-     group_by(Year, Month) %>%
-     summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
-     mutate(My_date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
-     ggplot() + 
-     geom_col(mapping = aes(My_date, Monthly_rain), color = "blue") +
-     geom_hline(aes(yintercept = mean(Monthly_rain)), color = "red", linetype = "dashed") +
-     geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("Monthly mean = ", round(mean(Monthly_rain),2)), vjust = -1, hjust = 0.25)) + 
-     labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
-    }
-    else if(input$aggregator == "daily"){
-      ggplotly(selected_rain2() %>%
-      ggplot() +
-      geom_col(aes(DatetimeAEST, Value), color = "blue") +
-      geom_hline(aes(yintercept = mean(Value)), color = "red", linetype = "dashed") + 
-      geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = 0.25)) + 
-      labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
-     }
+  output$lineplot <- renderPlotly({switch(input$aggregator, "yearly" = ggplotly(selected_rain2() %>%
+                                                                                  group_by(Year) %>%
+                                                                                  summarise(Yearly_rain = sum(Value, na.rm = T)) %>%
+                                                                                  ggplot() + 
+                                                                                  geom_col(mapping = aes(Year, Yearly_rain), color = "blue") +
+                                                                                  geom_hline(aes(yintercept = mean(Yearly_rain)), color = "red", linetype = "dashed") +
+                                                                                  geom_text(aes(min(Year),mean(Yearly_rain),label = paste0("Annual mean = ", round(mean(Yearly_rain),2)), vjust = -1, hjust = 0.25)) + 
+                                                                                  labs(x = "Date", y = "Annual Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
+                                                            ,
+                                                              "monthly" = ggplotly(selected_rain2() %>%
+                                                                                     group_by(Year, Month) %>%
+                                                                                     summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
+                                                                                     mutate(My_date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
+                                                                                     ggplot() + 
+                                                                                     geom_col(mapping = aes(My_date, Monthly_rain), color = "blue") +
+                                                                                     geom_hline(aes(yintercept = mean(Monthly_rain)), color = "red", linetype = "dashed") +
+                                                                                     geom_text(aes(min(My_date),mean(Monthly_rain),label = paste0("Monthly mean = ", round(mean(Monthly_rain),2)), vjust = -1, hjust = 0.25)) + 
+                                                                                     labs(x = "Date", y = "Monthly Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
+                                                            ,
+                                                              "daily" = ggplotly(selected_rain2() %>%
+                                                                                   ggplot() +
+                                                                                   geom_col(aes(DatetimeAEST, Value), color = "blue") +
+                                                                                   geom_hline(aes(yintercept = mean(Value)), color = "red", linetype = "dashed") + 
+                                                                                   geom_text(aes(min(DatetimeAEST),mean(Value),label = paste0(" Daily mean = ", round(mean(Value),2)), vjust = -1, hjust = 0.25)) + 
+                                                                                   labs(x = "Date", y = "Daily Rainfall (mm)", title = paste0("Rainfall at ", input$site)))
+  )
   })
   
   #Data download
