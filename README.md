@@ -2,6 +2,16 @@
 
 ## A shiny app for exploring the ACT Government rainfall data that is published by data.act.gov.au
 
+2 April 2020
+
+Made some updates:
+
+* Changed the plotting function over to plotly.R
+* Added radio buttons for selecting time frames for displaying the data
+* removed if_else statments and replaced with switch()
+* minor tweaks to the download function - some bugs still remain
+
+
 8 January 2020
 
 
