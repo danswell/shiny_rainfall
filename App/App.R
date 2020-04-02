@@ -173,13 +173,13 @@ server <- function(input, output, session) {
   selected_rain2 <- reactive({
     switch(input$timeframe, 
            "last 7 days" = selected_rain() %>%
-             filter(DatetimeAEST >= max(DatetimeAEST-7))
+             filter(DatetimeAEST > max(DatetimeAEST-7))
            ,
            "last 30 days" = selected_rain() %>%
-             filter(DatetimeAEST >= max(DatetimeAEST-30))
+             filter(DatetimeAEST > max(DatetimeAEST-30))
            ,
            "last year" = selected_rain() %>%
-             filter(DatetimeAEST >= max(DatetimeAEST-365))
+             filter(DatetimeAEST > max(DatetimeAEST)-years(1))
            ,
            "all data" = selected_rain()
            ,
@@ -228,24 +228,28 @@ server <- function(input, output, session) {
   
   #Data download
 
-  dfile <-reactive({if(input$aggregator == "yearly"){
-      selected_rain2() %>%
-      group_by(Year) %>%
-      summarise(Yearly_rain = sum(Value, na.rm = T))
-    }
-    else if(input$aggregator == "monthly"){selected_rain2() %>%
-        group_by(Year, Month) %>%
-        summarise(Monthly_rain = sum(Value, na.rm = T)) %>%
-        mutate(Date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep="")))
-      }
-    else if(input$aggregator == "daily"){selected_rain2()
-    }
-  })
+  dfile <-reactive({switch(input$aggregator,
+                           "yearly" = selected_rain2() %>%
+                             group_by(Year) %>%
+                             summarise(Yearly_rain_mm = sum(Value, na.rm = T)) %>%
+                             select(Year, Yearly_rain_mm)
+                           ,
+                           "monthly" = selected_rain2() %>%
+                             group_by(Year, Month) %>%
+                             summarise(Monthly_rain_mm = sum(Value, na.rm = T)) %>%
+                             mutate(Date = as.Date(paste(sprintf("%d-%02d", Year, Month), "-01", sep=""))) %>%
+                             select(Date, Monthly_rain_mm, -Year) #this is misbehaving
+                           ,
+                           "daily" = selected_rain2() %>%
+                             mutate(Rainfall_mm = Value) %>%
+                             select(DatetimeAEST, Rainfall_mm)
+  )
+})
 
 
   output$download <- downloadHandler(
     filename = function() {
-      paste("file.csv")
+      paste(input$site, "data.csv", sep = "_")
     },
     content = function(file){
       write.csv(dfile(), file, row.names = F)
