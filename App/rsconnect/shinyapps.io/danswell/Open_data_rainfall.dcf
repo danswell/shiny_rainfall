@@ -5,6 +5,12 @@ account: danswell
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1635221
+<<<<<<< HEAD
 bundleId: 2713333
 url: https://danswell.shinyapps.io/Open_data_rainfall/
 when: 1578444710.22087
+=======
+bundleId: 2956676
+url: https://danswell.shinyapps.io/Open_data_rainfall/
+when: 1585787773.32609
+>>>>>>> 4598f89b5e01e4d25232942e9ecd0317ac2f68b2

@@ -1,10 +1,10 @@
 install.packages("rsconnect")
 
 rsconnect::setAccountInfo(name='danswell',
-                          token='5B3CF18CC546144A594CD708B26E4F33',
-                          secret='NHXA1lnUSkpDbAETqTTfCkwlLta4DF11K3tdB/+h')
+                          token=Sys.getenv("Shiny_token"),
+                          secret=Sys.getenv("shiny_secret"))
 
 
 getwd()
-rsconnect::deployApp('E:/R git/shiny_rainfall/App', appName = "Open_data_rainfall")
+rsconnect::deployApp('C:/Users/dansw/Documents/R git2/shiny_rainfall/App', appName = "Open_data_rainfall")
 Y
