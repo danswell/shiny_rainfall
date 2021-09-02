@@ -21,21 +21,20 @@ library(plotly)
 
 #2. Read in static data
 
-Static_data <- read.csv("rainfall_data.csv", header = T)
+Static_data <- read.csv("rainfall_data.csv", header = T, stringsAsFactors = F)
 Static_data$Value <- as.numeric(Static_data$Value)
 Static_data$DatetimeAEST <- as.POSIXct(Static_data$DatetimeAEST, format = "%Y-%m-%dT%H:%M:%S")
-Static_data$DatetimeAEST <- as_date(Static_data$DatetimeAEST)
-Static_data$SiteID <- as.factor(Static_data$SiteID)
-
+Static_data$DatetimeAEST <- as.Date(Static_data$DatetimeAEST, tz = "Etc/GMT-10")
+#Static_data$SiteID <- as.factor(Static_data$SiteID)
 
 #3 Extract and process data from data.act.gov.au
 # This code uses the RSocrate API. It can be used to extract both the data and the metadata
 # The intent here is to pull data since 1 Jan 2020 - to reduce the load on the API.
 
-Datecall <- paste0("DatetimeAEST between '2019-12-31T09:00.000' and ","'",Sys.Date(),"T09:00.000","'")
+Datecall <- paste0("DatetimeAEST between '2021-08-31T09:00.000' and ","'",Sys.Date(),"T09:00.000","'")
 
 Query <- soql() %>%
-  soql_add_endpoint("https://www.data.act.gov.au/resource/yuhh-28ai.json") %>%
+  soql_add_endpoint("https://www.data.act.gov.au/resource/v9nd-cfqv.json") %>%
   soql_simple_filter("VariableName", "Rainfall") %>%
   soql_where(Datecall) %>% #dynamic date using sys.Date()
   soql_select("DatetimeAEST, Value, SiteID") %>%
@@ -47,19 +46,20 @@ Rainfall_data <- read.socrata(Query)
 #Prep data
 Rainfall_data$Value <- as.numeric(Rainfall_data$Value)
 Rainfall_data$DatetimeAEST <- as.POSIXct(Rainfall_data$DatetimeAEST, format = "%Y-%m-%dT%H:%M:%S")
-Rainfall_data$DatetimeAEST <- as_date(Rainfall_data$DatetimeAEST)
-Rainfall_data$SiteID <- as.factor(Rainfall_data$SiteID)
+Rainfall_data$DatetimeAEST <- as.Date(Rainfall_data$DatetimeAEST, tz = "Etc/GMT-10")
+#Rainfall_data$SiteID <- as.factor(Rainfall_data$SiteID)
 
 #merge static and new data, add month and years
 
 Rainfall_data <- bind_rows(Static_data, Rainfall_data)
 Rainfall_data$Month <- month(Rainfall_data$DatetimeAEST)
 Rainfall_data$Year <- year(Rainfall_data$DatetimeAEST)
+Rainfall_data$SiteID <- as.factor(Rainfall_data$SiteID)
 
 #4// Extract metadata from data.act.gov.au
 
 Query2 <- soql() %>%
-  soql_add_endpoint("https://www.data.act.gov.au/resource/tsq4-63ge.json") %>%
+  soql_add_endpoint("https://www.data.act.gov.au/resource/e2ar-siik.json") %>%
   soql_select("Siteid, siteName, latitude, longitude") %>%
   as.character()
 
@@ -88,7 +88,7 @@ ui <- fluidPage(titlePanel("ACT Rainfall Explorer"),
                     # Select site to plot
                     selectInput(inputId = "site", label = strong("Rain Gauge"),
                                 choices = unique(My_meta$Name),
-                                selected = "410776 - Licking Hole Creek above Cotter Junction"),
+                                selected = "570801 - Farrer at Hawkesbury Crescent"),
                     
                     # Select date range to be plotted
                    # sliderInput("Date", strong("Date range"), min = min(Rainfall_data$DatetimeAEST), max = max(Rainfall_data$DatetimeAEST),
